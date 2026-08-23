@@ -114,6 +114,18 @@
     </div>
 
     <div class="grp">
+      <h3>Y axis (proliferation)</h3>
+      <div class="seg" id="ymetric">
+        <button data-v="pr" class="on">S+G2M score</button>
+        <button data-v="cyc">% cycling</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
+        <b style="color:var(--ink)">Score</b>: cell-cycle genes vs matched-random background — 0 = baseline (quiescent), &lt;0 = below background, &gt;0 = cycling.<br>
+        <b style="color:var(--ink)">% cycling</b>: share of cells in S/G2M phase (absolute, 0–100%).
+      </div>
+    </div>
+
+    <div class="grp">
       <h3>Tissue safety tier</h3>
       <div id="tiers"></div>
     </div>
@@ -175,7 +187,7 @@ const PALETTE = ['#4aa8ff','#ef4444','#22c55e','#f59e0b','#a855f7','#ec4899','#1
   '#8b5cf6','#84cc16','#06b6d4','#fb7185','#eab308','#34d399','#60a5fa','#f472b6','#2dd4bf','#c084fc',
   '#fbbf24','#4ade80','#38bdf8','#fca5a5'];
 
-let D=null, state={gene:null, colorby:'cell_type', tiersOn:{1:1,2:1,3:1,4:1,0:1}, pct:1, nc:20, sortk:'risk', sortdir:-1};
+let D=null, state={gene:null, colorby:'cell_type', ymetric:'pr', tiersOn:{1:1,2:1,3:1,4:1,0:1}, pct:1, nc:20, sortk:'risk', sortdir:-1};
 
 async function boot(){
   try{ D = EMBED || await (await fetch('../data/aegis_data.json')).json(); }
@@ -211,6 +223,10 @@ function wireControls(){
   document.querySelectorAll('#colorby button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#colorby button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.colorby=b.dataset.v; render();
+  });
+  document.querySelectorAll('#ymetric button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#ymetric button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.ymetric=b.dataset.v; render();
   });
   const pct=document.getElementById('pct'), nc=document.getElementById('nc');
   pct.oninput=()=>{state.pct=+pct.value; document.getElementById('pctv').textContent=pct.value+'%'; render();};
@@ -278,12 +294,13 @@ function render(){
     document.getElementById('tblwrap').style.display='none'; setFoot(0); return; }
 
   const sizeref = 2.0*Math.max(...rs.map(r=>Math.max(r.pct,0.02)))/(38*38);
-  const ring = rs.map(r=> r.tier<=2 ? '#ff5a5a' : 'rgba(255,255,255,.25)');
+  const isCyc = state.ymetric==='cyc';
+  const yval = r => isCyc ? r.cyc*100 : r.pr;
   const traces=[];
 
   function mk(name,arr,color){
     traces.push({
-      x:arr.map(r=>r.expr), y:arr.map(r=>r.pr), mode:'markers', type:'scatter', name,
+      x:arr.map(r=>r.expr), y:arr.map(yval), mode:'markers', type:'scatter', name,
       marker:{size:arr.map(r=>Math.max(r.pct,0.02)), sizemode:'area', sizeref, sizemin:5,
         color:color||arr.map(r=>colorFor(r)), line:{width:arr.map(r=>r.tier<=2?2.2:0.8),
         color:arr.map(r=>r.tier<=2?'#ff5a5a':'rgba(255,255,255,.28)')}, opacity:.85},
@@ -307,9 +324,11 @@ function render(){
     margin:{l:60,r:20,t:44,b:52},
     title:{text:state.gene+' — off-tumor expression vs proliferation',font:{size:15}},
     xaxis:{title:'Mean expression (log-norm)',gridcolor:'#222a36',zeroline:false},
-    yaxis:{title:'Proliferation score (S+G2M)',gridcolor:'#222a36',zerolinecolor:'#3a4454'},
+    yaxis:{title:isCyc?'% cycling cells (S/G2M phase)':'Proliferation score (S+G2M)',
+           gridcolor:'#222a36',zerolinecolor:'#3a4454',
+           rangemode:isCyc?'tozero':'normal'},
     legend:{font:{size:10.5},bgcolor:'rgba(0,0,0,0)'}, hovermode:'closest',
-    shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:'#3a4454',dash:'dot',width:1}}]
+    shapes:isCyc?[]:[{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:'#3a4454',dash:'dot',width:1}}]
   };
   Plotly.react(plot,traces,layout,{responsive:true,displayModeBar:false});
   plot.on('plotly_click',ev=>{ const cd=ev.points[0].customdata; highlightRow(cd[0],cd[1]); });

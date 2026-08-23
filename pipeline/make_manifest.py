@@ -13,6 +13,7 @@ from pathlib import Path
 AEGIS = Path(__file__).resolve().parent.parent
 PROJECT = AEGIS.parent
 RAW = AEGIS / "raw"
+ANNOT = AEGIS / "annot"   # our own annotations (e.g. marker-based kidney)
 MIN_LABELED = 0.5
 
 rows, skipped = [], []
@@ -21,6 +22,13 @@ rows, skipped = [], []
 for tissue, sub in [("liver", "normal/liver"), ("bone_marrow", "normal/bone_marrow")]:
     for f in sorted((PROJECT / "results" / sub).glob("*_annotated.h5ad")):
         rows.append({"path": f"results/{sub}/{f.name}", "tissue": tissue})
+
+# 1b) our own annotated tissues (kidney via marker annotation, etc.)
+if ANNOT.exists():
+    for d in sorted(ANNOT.glob("*")):
+        if d.is_dir():
+            for f in sorted(d.glob("*.h5ad")):
+                rows.append({"path": f"aegis/annot/{d.name}/{f.name}", "tissue": d.name})
 
 # 2) downloaded raw samples with native labels
 for d in sorted(RAW.glob("*")):

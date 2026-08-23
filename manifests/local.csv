@@ -1,0 +1,10 @@
+path,tissue
+results/normal/liver/ERX8792139_annotated.h5ad,liver
+results/normal/liver/SRX15625585_annotated.h5ad,liver
+results/normal/liver/SRX9627328_annotated.h5ad,liver
+results/normal/liver/SRX9627330_annotated.h5ad,liver
+results/normal/bone_marrow/SRX28908287_annotated.h5ad,bone_marrow
+results/normal/bone_marrow/SRX28908288_annotated.h5ad,bone_marrow
+results/normal/bone_marrow/SRX28908392_annotated.h5ad,bone_marrow
+results/normal/bone_marrow/SRX28908402_annotated.h5ad,bone_marrow
+results/normal/bone_marrow/SRX28908403_annotated.h5ad,bone_marrow

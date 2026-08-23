@@ -1,0 +1,28 @@
+# Raw & large single-cell data — never commit (re-fetchable from scBaseCount/cellxgene)
+raw/
+data/raw/
+*.h5ad
+*.h5
+*.loom
+*.mtx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Generated standalone build (regenerate with pipeline/build_app.py)
+app/aegis_standalone.html
+
+# Keep the compact derived summary that powers the app
+!data/aegis_summary.parquet
+!data/aegis_groups.parquet
+!data/aegis_data.json

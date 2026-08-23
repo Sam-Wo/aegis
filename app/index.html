@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis — Single-Cell Target Safety Atlas</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#2a3140;
+    --ink:#e6edf3; --muted:#8b98a9; --accent:#4aa8ff;
+    --t1:#ef4444; --t2:#f59e0b; --t3:#eab308; --t4:#22c55e; --other:#3b82f6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  a{color:var(--accent)}
+  .header{padding:16px 22px;border-bottom:1px solid var(--line);
+    background:linear-gradient(120deg,#0d1b2a,#111a2e 60%,#0e1116);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .header .brand{display:flex;align-items:center;gap:12px}
+  .shield{width:30px;height:34px;flex:none}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:.3px}
+  .header .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .chips{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+  .chip{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted)}
+  .chip b{color:var(--ink);font-size:15px;display:block}
+
+  .layout{display:grid;grid-template-columns:290px 1fr;gap:0;min-height:calc(100vh - 74px)}
+  .side{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow-y:auto}
+  .main{padding:18px 20px;min-width:0}
+  .grp{margin-bottom:20px}
+  .grp h3{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:9px}
+
+  .genebox{position:relative}
+  .genebox input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    padding:10px 12px;border-radius:9px;font-size:15px;font-weight:600;letter-spacing:.3px}
+  .genebox input:focus{outline:none;border-color:var(--accent)}
+  .ac{position:absolute;top:44px;left:0;right:0;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;max-height:280px;overflow-y:auto;z-index:40;display:none;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .ac div{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+  .ac div:hover,.ac div.sel{background:rgba(74,168,255,.16)}
+  .ac .tag{font-size:10.5px;color:var(--muted);align-self:center}
+
+  .annobar{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+  .anno{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .anno.adc{background:rgba(74,168,255,.15);border-color:var(--accent);color:#bfe0ff}
+
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{flex:1;background:none;border:none;color:var(--muted);padding:8px 6px;cursor:pointer;font-size:12px;font-weight:600}
+  .seg button.on{background:var(--accent);color:#04121f}
+
+  .tierrow{display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer}
+  .tierrow input{accent-color:var(--accent)}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .rng{width:100%}
+  .rngval{float:right;color:var(--ink);font-weight:600}
+  label.small{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+
+  #plot{width:100%;height:560px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .hint{color:var(--muted);font-size:13px;text-align:center;padding:60px 20px}
+
+  .tblwrap{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tblhead{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .tblhead h3{font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+  tbody tr:hover{background:rgba(74,168,255,.06)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px}
+  .b-hi{background:rgba(239,68,68,.18);color:#fca5a5}
+  .b-md{background:rgba(245,158,11,.18);color:#fcd34d}
+  .b-lo{background:rgba(34,197,94,.16);color:#86efac}
+  .tinytier{font-size:10px;padding:1px 6px;border-radius:4px;color:#0a0e14;font-weight:700}
+  .foot{color:var(--muted);font-size:11.5px;padding:14px 20px;border-top:1px solid var(--line);margin-top:8px}
+  .tblscroll{max-height:340px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="brand">
+    <svg class="shield" viewBox="0 0 30 34"><path d="M15 1 L28 6 V16 C28 25 22 31 15 33 C8 31 2 25 2 16 V6 Z"
+      fill="none" stroke="#4aa8ff" stroke-width="2"/><path d="M9 17 l4 4 l8 -9" fill="none" stroke="#4aa8ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>
+      <h1>Aegis</h1>
+      <div class="sub">Single-cell target safety atlas — expression &times; proliferation in healthy tissue</div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><b id="c-genes">–</b>surface genes</div>
+    <div class="chip"><b id="c-tissues">–</b>tissues</div>
+    <div class="chip"><b id="c-groups">–</b>cell-type groups</div>
+    <div class="chip"><b id="c-cells">–</b>cells</div>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="side">
+    <div class="grp">
+      <h3>Target gene</h3>
+      <div class="genebox">
+        <input id="gene" type="text" placeholder="Search a surface protein…" autocomplete="off">
+        <div class="ac" id="ac"></div>
+      </div>
+      <div class="annobar" id="anno"></div>
+    </div>
+
+    <div class="grp">
+      <h3>Colour bubbles by</h3>
+      <div class="seg" id="colorby">
+        <button data-v="cell_type" class="on">Cell type</button>
+        <button data-v="tissue">Tissue</button>
+        <button data-v="tier">Tier</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h3>Tissue safety tier</h3>
+      <div id="tiers"></div>
+    </div>
+
+    <div class="grp">
+      <h3>Filters</h3>
+      <label class="small">Min % expressing <span class="rngval" id="pctv">1%</span></label>
+      <input class="rng" id="pct" type="range" min="0" max="80" value="1" step="1">
+      <label class="small" style="margin-top:12px">Min cells / group <span class="rngval" id="ncv">20</span></label>
+      <input class="rng" id="nc" type="range" min="20" max="1000" value="20" step="10">
+    </div>
+
+    <div class="grp">
+      <h3>Read the plot</h3>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.6">
+        <b style="color:var(--ink)">X</b> = mean expression (log-norm)<br>
+        <b style="color:var(--ink)">Y</b> = proliferation (S+G2M)<br>
+        <b style="color:var(--ink)">Size</b> = % of cells expressing<br>
+        <b style="color:var(--ink)">Red ring</b> = critical/serious tissue<br>
+        Upper-right in a red-ring bubble = a target on dividing cells of a dose-limiting organ.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="plot"><div class="hint">Search a surface protein above to see its off-tumor expression across healthy-tissue cell types.</div></div>
+
+    <div class="tblwrap" id="tblwrap" style="display:none">
+      <div class="tblhead">
+        <h3 id="tbltitle">Safety breakdown</h3>
+        <span style="font-size:11.5px;color:var(--muted)">click a column to sort · click a row to highlight</span>
+      </div>
+      <div class="tblscroll">
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="tissue">Tissue</th><th data-k="ct">Cell type</th>
+            <th data-k="tier" class="num">Tier</th>
+            <th data-k="pct" class="num">% express</th>
+            <th data-k="expr" class="num">Mean expr</th>
+            <th data-k="pr" class="num">Prolif</th>
+            <th data-k="n" class="num">Cells</th>
+            <th data-k="risk" class="num">Risk</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot" id="foot"></div>
+  </main>
+</div>
+
+<script>
+/* ---- data load: embedded if present, else fetch sibling json ---- */
+const EMBED = /*__AEGIS_DATA__*/ null;
+const TIER_COLORS = {1:'var(--t1)',2:'var(--t2)',3:'var(--t3)',4:'var(--t4)',0:'var(--other)'};
+const TIER_HEX = {1:'#ef4444',2:'#f59e0b',3:'#eab308',4:'#22c55e',0:'#3b82f6'};
+const TIER_NAME = {1:'CRITICAL',2:'SERIOUS',3:'MANAGEABLE',4:'LOW',0:'OTHER'};
+const PALETTE = ['#4aa8ff','#ef4444','#22c55e','#f59e0b','#a855f7','#ec4899','#14b8a6','#f97316',
+  '#8b5cf6','#84cc16','#06b6d4','#fb7185','#eab308','#34d399','#60a5fa','#f472b6','#2dd4bf','#c084fc',
+  '#fbbf24','#4ade80','#38bdf8','#fca5a5'];
+
+let D=null, state={gene:null, colorby:'cell_type', tiersOn:{1:1,2:1,3:1,4:1,0:1}, pct:1, nc:20, sortk:'risk', sortdir:-1};
+
+async function boot(){
+  try{ D = EMBED || await (await fetch('../data/aegis_data.json')).json(); }
+  catch(e){ document.getElementById('plot').innerHTML =
+    '<div class="hint">Could not load data. Serve the folder (e.g. <code>python -m http.server</code>) or open the standalone build.</div>'; return; }
+  document.getElementById('c-genes').textContent = D.meta.n_genes.toLocaleString();
+  document.getElementById('c-tissues').textContent = D.meta.tissues.length;
+  document.getElementById('c-groups').textContent = D.meta.n_groups.toLocaleString();
+  document.getElementById('c-cells').textContent = (D.meta.total_cells/1e3).toFixed(0)+'k';
+  buildTiers(); wireControls();
+  // default gene: first with an approved/clinical ADC status, else a high-signal one
+  const def = D.genes.find(g=>{const a=D.ann[g]; return a && a.adc_clinical_status &&
+      /approv|clinic|phase/i.test(a.adc_clinical_status)}) || (D.genes.includes('MS4A1')?'MS4A1':D.genes[0]);
+  selectGene(def);
+}
+
+function buildTiers(){
+  const present=[...new Set(D.groups.map(g=>g.tier))].sort();
+  const box=document.getElementById('tiers'); box.innerHTML='';
+  present.forEach(t=>{
+    const row=document.createElement('label'); row.className='tierrow';
+    row.innerHTML=`<input type="checkbox" checked data-t="${t}"><span class="dot" style="background:${TIER_HEX[t]}"></span>${TIER_NAME[t]}`;
+    row.querySelector('input').onchange=e=>{state.tiersOn[t]=e.target.checked?1:0; render();};
+    box.appendChild(row);
+  });
+}
+
+function wireControls(){
+  const inp=document.getElementById('gene'), ac=document.getElementById('ac');
+  inp.addEventListener('input',()=>showAC(inp.value));
+  inp.addEventListener('focus',()=>showAC(inp.value));
+  document.addEventListener('click',e=>{ if(!e.target.closest('.genebox')) ac.style.display='none'; });
+  document.querySelectorAll('#colorby button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#colorby button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.colorby=b.dataset.v; render();
+  });
+  const pct=document.getElementById('pct'), nc=document.getElementById('nc');
+  pct.oninput=()=>{state.pct=+pct.value; document.getElementById('pctv').textContent=pct.value+'%'; render();};
+  nc.oninput=()=>{state.nc=+nc.value; document.getElementById('ncv').textContent=nc.value; render();};
+  document.querySelectorAll('#tbl th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(state.sortk===k) state.sortdir*=-1; else {state.sortk=k; state.sortdir=-1;} renderTable();
+  });
+}
+
+function showAC(q){
+  const ac=document.getElementById('ac'); q=(q||'').trim().toUpperCase();
+  let list=D.genes; if(q) list=D.genes.filter(g=>g.toUpperCase().includes(q));
+  list=list.slice(0,60);
+  ac.innerHTML=list.map(g=>{const a=D.ann[g]||{};
+    const tag=a.adc_clinical_status && /approv|clinic|phase/i.test(a.adc_clinical_status)?'ADC':((a.category||'').split(/[;,]/)[0]||'');
+    return `<div data-g="${g}"><span>${g}</span><span class="tag">${tag||''}</span></div>`;}).join('');
+  ac.style.display=list.length?'block':'none';
+  ac.querySelectorAll('div').forEach(d=>d.onclick=()=>{selectGene(d.dataset.g);});
+}
+
+function selectGene(g){
+  state.gene=g; document.getElementById('gene').value=g; document.getElementById('ac').style.display='none';
+  const a=D.ann[g]||{}; const bar=document.getElementById('anno'); bar.innerHTML='';
+  const bits=[];
+  if(a.category) bits.push(['anno',a.category]);
+  if(a.confidence_tier) bits.push(['anno','conf: '+a.confidence_tier]);
+  if(a.adc_clinical_status) bits.push(['anno adc',a.adc_clinical_status]);
+  bar.innerHTML=bits.map(b=>`<span class="${b[0]}">${b[1]}</span>`).join('');
+  render();
+}
+
+/* rows for the current gene, after filters */
+function rows(){
+  const e=D.expr[state.gene]||[];
+  const byg={}; e.forEach(([gi,me,pp])=>byg[gi]=[me,pp]);
+  const out=[];
+  D.groups.forEach((grp,i)=>{
+    if(!state.tiersOn[grp.tier]) return;
+    if(grp.n<state.nc) return;
+    const v=byg[i]; const me=v?v[0]:0, pp=v?v[1]:0;
+    if(pp*100<state.pct) return;
+    out.push({i, tissue:grp.t, ct:grp.ct, tier:grp.tier, tl:grp.tl, n:grp.n,
+      pr:grp.pr, cyc:grp.cyc, expr:me, pct:pp, risk:riskScore(grp,me,pp)});
+  });
+  return out;
+}
+function riskScore(grp,me,pp){
+  const tw={1:1.0,2:0.7,3:0.35,4:0.15,0:0.3}[grp.tier]||0.3;
+  const prol=Math.max(0,grp.pr);
+  return +(pp*(1+Math.min(me,4)/4)*tw*(1+prol)).toFixed(3);
+}
+function riskBadge(r){ if(r>=0.5) return['b-hi','High']; if(r>=0.2) return['b-md','Moderate']; return['b-lo','Low']; }
+
+function colorFor(r){
+  if(state.colorby==='tier') return TIER_HEX[r.tier];
+  if(state.colorby==='tissue'){ const ts=D.meta.tissues; return PALETTE[ts.indexOf(r.tissue)%PALETTE.length]; }
+  return null; // cell_type handled by trace grouping
+}
+
+function render(){
+  if(!state.gene){return;}
+  const rs=rows();
+  const plot=document.getElementById('plot');
+  if(!rs.length){ plot.innerHTML=`<div class="hint"><b>${state.gene}</b> is below the current thresholds in all cell types.<br>Lower the “% expressing” filter to see low-level expression.</div>`;
+    document.getElementById('tblwrap').style.display='none'; setFoot(0); return; }
+
+  const sizeref = 2.0*Math.max(...rs.map(r=>Math.max(r.pct,0.02)))/(38*38);
+  const ring = rs.map(r=> r.tier<=2 ? '#ff5a5a' : 'rgba(255,255,255,.25)');
+  const traces=[];
+
+  function mk(name,arr,color){
+    traces.push({
+      x:arr.map(r=>r.expr), y:arr.map(r=>r.pr), mode:'markers', type:'scatter', name,
+      marker:{size:arr.map(r=>Math.max(r.pct,0.02)), sizemode:'area', sizeref, sizemin:5,
+        color:color||arr.map(r=>colorFor(r)), line:{width:arr.map(r=>r.tier<=2?2.2:0.8),
+        color:arr.map(r=>r.tier<=2?'#ff5a5a':'rgba(255,255,255,.28)')}, opacity:.85},
+      customdata:arr.map(r=>[r.tissue,r.ct,r.tl,(r.pct*100).toFixed(1),r.expr.toFixed(2),r.pr.toFixed(2),r.n,(r.cyc*100).toFixed(0)]),
+      hovertemplate:'<b>%{customdata[1]}</b><br>%{customdata[0]} · Tier %{customdata[2]}<br>'+
+        'Expr %{customdata[4]} · %{customdata[3]}% express<br>Prolif %{customdata[5]} · %{customdata[7]}% cycling<br>'+
+        '%{customdata[6]} cells<extra></extra>'
+    });
+  }
+  if(state.colorby==='cell_type'){
+    const cts=[...new Set(rs.map(r=>r.ct))];
+    cts.forEach((ct,ci)=>mk(ct.length>28?ct.slice(0,27)+'…':ct, rs.filter(r=>r.ct===ct), PALETTE[ci%PALETTE.length]));
+  } else if(state.colorby==='tier'){
+    [1,2,3,4,0].forEach(t=>{const a=rs.filter(r=>r.tier===t); if(a.length) mk(TIER_NAME[t],a,TIER_HEX[t]);});
+  } else {
+    D.meta.tissues.forEach(ts=>{const a=rs.filter(r=>r.tissue===ts); if(a.length) mk(ts,a);});
+  }
+
+  const layout={
+    paper_bgcolor:'#161b22', plot_bgcolor:'#0e1116', font:{color:'#e6edf3',size:12},
+    margin:{l:60,r:20,t:44,b:52},
+    title:{text:state.gene+' — off-tumor expression vs proliferation',font:{size:15}},
+    xaxis:{title:'Mean expression (log-norm)',gridcolor:'#222a36',zeroline:false},
+    yaxis:{title:'Proliferation score (S+G2M)',gridcolor:'#222a36',zerolinecolor:'#3a4454'},
+    legend:{font:{size:10.5},bgcolor:'rgba(0,0,0,0)'}, hovermode:'closest',
+    shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:'#3a4454',dash:'dot',width:1}}]
+  };
+  Plotly.react(plot,traces,layout,{responsive:true,displayModeBar:false});
+  plot.on('plotly_click',ev=>{ const cd=ev.points[0].customdata; highlightRow(cd[0],cd[1]); });
+  renderTable(rs); setFoot(rs.length);
+}
+
+let _rows=[];
+function renderTable(rs){
+  if(rs) _rows=rs;
+  document.getElementById('tblwrap').style.display='block';
+  document.getElementById('tbltitle').textContent=state.gene+' — safety breakdown ('+_rows.length+' cell-type groups)';
+  const k=state.sortk, dir=state.sortdir;
+  const sorted=[..._rows].sort((a,b)=>{let x=a[k],y=b[k];
+    if(typeof x==='string'){return dir*x.localeCompare(y);} return dir*(x-y);});
+  const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
+  sorted.forEach(r=>{
+    const [bc,bt]=riskBadge(r.risk);
+    const tr=document.createElement('tr'); tr.dataset.key=r.tissue+'|'+r.ct;
+    tr.innerHTML=`<td>${r.tissue}</td><td>${r.ct}</td>
+      <td class="num"><span class="tinytier" style="background:${TIER_HEX[r.tier]}">${r.tier||'–'}</span></td>
+      <td class="num">${(r.pct*100).toFixed(1)}%</td>
+      <td class="num">${r.expr.toFixed(2)}</td>
+      <td class="num">${r.pr.toFixed(2)}</td>
+      <td class="num">${r.n.toLocaleString()}</td>
+      <td class="num"><span class="badge ${bc}">${bt}</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+function highlightRow(tissue,ct){
+  document.querySelectorAll('#tbl tbody tr').forEach(tr=>{
+    tr.style.background = tr.dataset.key===(tissue+'|'+ct)?'rgba(74,168,255,.18)':'';
+    if(tr.dataset.key===(tissue+'|'+ct)) tr.scrollIntoView({block:'nearest'});
+  });
+}
+function setFoot(n){
+  document.getElementById('foot').innerHTML =
+    `Showing ${n} cell-type groups · data: scBaseCount / CELLxGene healthy tissue · `+
+    `proliferation = Tirosh S+G2M signature · % expressing = raw count &gt; 0. `+
+    `Bubbles with a red ring are Tier 1–2 (dose-limiting) tissues.`;
+}
+boot();
+</script>
+</body>
+</html>

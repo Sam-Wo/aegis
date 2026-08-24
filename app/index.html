@@ -7,21 +7,38 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
 <style>
   :root{
+    /* dark (default) */
     --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#2a3140;
     --ink:#e6edf3; --muted:#8b98a9; --accent:#4aa8ff;
+    --header-bg:linear-gradient(120deg,#0d1b2a,#111a2e 60%,#0e1116);
+    --chip-bg:rgba(255,255,255,.05); --hover:rgba(74,168,255,.08);
+    --plot-bg:#0e1116; --plot-panel:#161b22; --grid:#222a36; --zero:#3a4454;
+    --ring2:rgba(255,255,255,.28); --shadow:rgba(0,0,0,.5);
     --t1:#ef4444; --t2:#f59e0b; --t3:#eab308; --t4:#22c55e; --other:#3b82f6;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7fa; --panel:#ffffff; --panel2:#eef1f6; --line:#d7dde5;
+    --ink:#1a2129; --muted:#5c6774; --accent:#1a72d4;
+    --header-bg:linear-gradient(120deg,#e8f1fb,#eef4fc 60%,#f5f7fa);
+    --chip-bg:rgba(0,0,0,.045); --hover:rgba(26,114,212,.08);
+    --plot-bg:#ffffff; --plot-panel:#ffffff; --grid:#e6eaef; --zero:#b8c1cc;
+    --ring2:rgba(30,41,59,.30); --shadow:rgba(15,30,60,.14);
+    --t3:#ca9a06;  /* deepen yellow tiers for contrast on white */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
   a{color:var(--accent)}
   .header{padding:16px 22px;border-bottom:1px solid var(--line);
-    background:linear-gradient(120deg,#0d1b2a,#111a2e 60%,#0e1116);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+    background:var(--header-bg);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
   .header .brand{display:flex;align-items:center;gap:12px}
   .shield{width:30px;height:34px;flex:none}
   .header h1{font-size:20px;font-weight:700;letter-spacing:.3px}
   .header .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
   .chips{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
-  .chip{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted)}
+  .chip{background:var(--chip-bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted)}
+  .themebtn{background:var(--chip-bg);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+    cursor:pointer;font-size:16px;line-height:1;padding:8px 11px}
+  .themebtn:hover{border-color:var(--accent)}
   .chip b{color:var(--ink);font-size:15px;display:block}
 
   .layout{display:grid;grid-template-columns:290px 1fr;gap:0;min-height:calc(100vh - 74px)}
@@ -35,7 +52,7 @@
     padding:10px 12px;border-radius:9px;font-size:15px;font-weight:600;letter-spacing:.3px}
   .genebox input:focus{outline:none;border-color:var(--accent)}
   .ac{position:absolute;top:44px;left:0;right:0;background:var(--panel2);border:1px solid var(--line);
-    border-radius:9px;max-height:280px;overflow-y:auto;z-index:40;display:none;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+    border-radius:9px;max-height:280px;overflow-y:auto;z-index:40;display:none;box-shadow:0 12px 30px var(--shadow)}
   .ac div{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
   .ac div:hover,.ac div.sel{background:rgba(74,168,255,.16)}
   .ac .tag{font-size:10.5px;color:var(--muted);align-self:center}
@@ -55,8 +72,30 @@
   .rngval{float:right;color:var(--ink);font-weight:600}
   label.small{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 
-  #plot{width:100%;height:560px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .plotrow{display:flex;gap:14px;align-items:stretch}
+  #plot{flex:1;min-width:0;height:560px;background:var(--plot-panel);border:1px solid var(--line);border-radius:12px}
   .hint{color:var(--muted);font-size:13px;text-align:center;padding:60px 20px}
+
+  /* custom legend */
+  #legendPanel{width:216px;flex:none;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:12px 12px 10px;display:flex;flex-direction:column;height:560px}
+  .legTitle{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 8px}
+  #legList{overflow-y:auto;flex:1;min-height:40px;margin:-2px -4px 0;padding:0 4px}
+  .legItem{display:flex;align-items:center;gap:7px;padding:3px 3px;cursor:pointer;font-size:11.5px;
+    line-height:1.2;border-radius:5px}
+  .legItem:hover{background:var(--hover)}
+  .legItem.off{opacity:.34}
+  .legSw{width:11px;height:11px;border-radius:50%;flex:none;border:1px solid rgba(128,128,128,.35)}
+  .legName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .legItem:hover .legName{white-space:normal}
+  .legKey{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+  .sizekey{display:flex;align-items:flex-end;justify-content:space-around;gap:6px;height:52px;margin:8px 2px 4px}
+  .sizekey .sc{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .sizekey .cir{border-radius:50%;background:var(--muted);opacity:.45}
+  .sizekey .lb{font-size:10px;color:var(--muted)}
+  .ringkey{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}
+  .ringSw{width:14px;height:14px;border-radius:50%;border:2.4px solid #ff5a5a;flex:none}
+  @media(max-width:900px){.plotrow{flex-direction:column}#legendPanel{width:100%;height:auto;max-height:320px}}
 
   .tblwrap{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .tblhead{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
@@ -64,12 +103,15 @@
   table{width:100%;border-collapse:collapse;font-size:12.5px}
   th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
-  tbody tr:hover{background:rgba(74,168,255,.06)}
+  tbody tr:hover{background:var(--hover)}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   .badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px}
   .b-hi{background:rgba(239,68,68,.18);color:#fca5a5}
   .b-md{background:rgba(245,158,11,.18);color:#fcd34d}
   .b-lo{background:rgba(34,197,94,.16);color:#86efac}
+  :root[data-theme="light"] .b-hi{background:rgba(220,38,38,.12);color:#b91c1c}
+  :root[data-theme="light"] .b-md{background:rgba(217,119,6,.14);color:#b45309}
+  :root[data-theme="light"] .b-lo{background:rgba(22,163,74,.13);color:#15803d}
   .tinytier{font-size:10px;padding:1px 6px;border-radius:4px;color:#0a0e14;font-weight:700}
   .foot{color:var(--muted);font-size:11.5px;padding:14px 20px;border-top:1px solid var(--line);margin-top:8px}
   .tblscroll{max-height:340px;overflow:auto}
@@ -91,6 +133,7 @@
     <div class="chip"><b id="c-groups">–</b>cell-type groups</div>
     <div class="chip"><b id="c-cells">–</b>cells</div>
   </div>
+  <button class="themebtn" id="themeBtn" title="Toggle light / dark">☀</button>
 </div>
 
 <div class="layout">
@@ -151,7 +194,18 @@
   </aside>
 
   <main class="main">
-    <div id="plot"><div class="hint">Search a surface protein above to see its off-tumor expression across healthy-tissue cell types.</div></div>
+    <div class="plotrow">
+      <div id="plot"><div class="hint">Search a surface protein above to see its off-tumor expression across healthy-tissue cell types.</div></div>
+      <aside id="legendPanel" style="display:none">
+        <div class="legTitle" id="legTitle">Cell type</div>
+        <div id="legList"></div>
+        <div class="legKey">
+          <div class="legTitle">Bubble size = % expressing</div>
+          <div class="sizekey" id="sizekey"></div>
+          <div class="ringkey"><span class="ringSw"></span><span>Tier 1–2 (dose-limiting) tissue</span></div>
+        </div>
+      </aside>
+    </div>
 
     <div class="tblwrap" id="tblwrap" style="display:none">
       <div class="tblhead">
@@ -189,7 +243,25 @@ const PALETTE = ['#4aa8ff','#ef4444','#22c55e','#f59e0b','#a855f7','#ec4899','#1
 
 let D=null, state={gene:null, colorby:'cell_type', ymetric:'pr', tiersOn:{1:1,2:1,3:1,4:1,0:1}, pct:1, nc:20, sortk:'risk', sortdir:-1};
 
+/* ---- theme ---- */
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function themeColors(){
+  return {paper:cssVar('--plot-panel'), plot:cssVar('--plot-bg'), ink:cssVar('--ink'),
+          muted:cssVar('--muted'), grid:cssVar('--grid'), zero:cssVar('--zero'), ring2:cssVar('--ring2')};
+}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  const b=document.getElementById('themeBtn'); if(b) b.textContent = t==='light' ? '☾' : '☀';
+  try{ localStorage.setItem('aegis-theme', t); }catch(e){}
+}
+function initTheme(){
+  let t=null; try{ t=localStorage.getItem('aegis-theme'); }catch(e){}
+  if(t!=='light' && t!=='dark') t='dark';   // default dark; remember explicit choice
+  applyTheme(t);
+}
+
 async function boot(){
+  initTheme();
   try{ D = EMBED || await (await fetch('../data/aegis_data.json')).json(); }
   catch(e){ document.getElementById('plot').innerHTML =
     '<div class="hint">Could not load data. Serve the folder (e.g. <code>python -m http.server</code>) or open the standalone build.</div>'; return; }
@@ -228,6 +300,10 @@ function wireControls(){
     document.querySelectorAll('#ymetric button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.ymetric=b.dataset.v; render();
   });
+  document.getElementById('themeBtn').onclick=()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    applyTheme(cur==='light'?'dark':'light'); render();
+  };
   const pct=document.getElementById('pct'), nc=document.getElementById('nc');
   pct.oninput=()=>{state.pct=+pct.value; document.getElementById('pctv').textContent=pct.value+'%'; render();};
   nc.oninput=()=>{state.nc=+nc.value; document.getElementById('ncv').textContent=nc.value; render();};
@@ -291,48 +367,79 @@ function render(){
   const rs=rows();
   const plot=document.getElementById('plot');
   if(!rs.length){ plot.innerHTML=`<div class="hint"><b>${state.gene}</b> is below the current thresholds in all cell types.<br>Lower the “% expressing” filter to see low-level expression.</div>`;
-    document.getElementById('tblwrap').style.display='none'; setFoot(0); return; }
+    document.getElementById('tblwrap').style.display='none';
+    document.getElementById('legendPanel').style.display='none'; setFoot(0); return; }
 
   const sizeref = 2.0*Math.max(...rs.map(r=>Math.max(r.pct,0.02)))/(38*38);
   const isCyc = state.ymetric==='cyc';
   const yval = r => isCyc ? r.cyc*100 : r.pr;
-  const traces=[];
+  const tc = themeColors();
+  const traces=[], legend=[];
 
   function mk(name,arr,color){
     traces.push({
       x:arr.map(r=>r.expr), y:arr.map(yval), mode:'markers', type:'scatter', name,
       marker:{size:arr.map(r=>Math.max(r.pct,0.02)), sizemode:'area', sizeref, sizemin:5,
-        color:color||arr.map(r=>colorFor(r)), line:{width:arr.map(r=>r.tier<=2?2.2:0.8),
-        color:arr.map(r=>r.tier<=2?'#ff5a5a':'rgba(255,255,255,.28)')}, opacity:.85},
+        color:color, line:{width:arr.map(r=>r.tier<=2?2.2:0.8),
+        color:arr.map(r=>r.tier<=2?'#ff5a5a':tc.ring2)}, opacity:.85},
       customdata:arr.map(r=>[r.tissue,r.ct,r.tl,(r.pct*100).toFixed(1),r.expr.toFixed(2),r.pr.toFixed(2),r.n,(r.cyc*100).toFixed(0)]),
       hovertemplate:'<b>%{customdata[1]}</b><br>%{customdata[0]} · Tier %{customdata[2]}<br>'+
         'Expr %{customdata[4]} · %{customdata[3]}% express<br>Prolif %{customdata[5]} · %{customdata[7]}% cycling<br>'+
         '%{customdata[6]} cells<extra></extra>'
     });
+    legend.push({name, color});
   }
   if(state.colorby==='cell_type'){
-    const cts=[...new Set(rs.map(r=>r.ct))];
-    cts.forEach((ct,ci)=>mk(ct.length>28?ct.slice(0,27)+'…':ct, rs.filter(r=>r.ct===ct), PALETTE[ci%PALETTE.length]));
+    const cts=[...new Set(rs.map(r=>r.ct))].sort();
+    cts.forEach((ct,ci)=>mk(ct, rs.filter(r=>r.ct===ct), PALETTE[ci%PALETTE.length]));
   } else if(state.colorby==='tier'){
     [1,2,3,4,0].forEach(t=>{const a=rs.filter(r=>r.tier===t); if(a.length) mk(TIER_NAME[t],a,TIER_HEX[t]);});
   } else {
-    D.meta.tissues.forEach(ts=>{const a=rs.filter(r=>r.tissue===ts); if(a.length) mk(ts,a);});
+    D.meta.tissues.forEach(ts=>{const a=rs.filter(r=>r.tissue===ts);
+      if(a.length) mk(ts.replace(/_/g,' '),a,PALETTE[D.meta.tissues.indexOf(ts)%PALETTE.length]);});
   }
 
   const layout={
-    paper_bgcolor:'#161b22', plot_bgcolor:'#0e1116', font:{color:'#e6edf3',size:12},
-    margin:{l:60,r:20,t:44,b:52},
-    title:{text:state.gene+' — off-tumor expression vs proliferation',font:{size:15}},
-    xaxis:{title:'Mean expression (log-norm)',gridcolor:'#222a36',zeroline:false},
+    paper_bgcolor:tc.paper, plot_bgcolor:tc.plot, font:{color:tc.ink,size:12},
+    margin:{l:60,r:16,t:44,b:52}, showlegend:false,
+    title:{text:state.gene+' — off-tumor expression vs proliferation',font:{size:15,color:tc.ink}},
+    xaxis:{title:'Mean expression (log-norm)',gridcolor:tc.grid,zeroline:false,
+           color:tc.muted,linecolor:tc.grid},
     yaxis:{title:isCyc?'% cycling cells (S/G2M phase)':'Proliferation score (S+G2M)',
-           gridcolor:'#222a36',zerolinecolor:'#3a4454',
+           gridcolor:tc.grid,zerolinecolor:tc.zero,color:tc.muted,linecolor:tc.grid,
            rangemode:isCyc?'tozero':'normal'},
-    legend:{font:{size:10.5},bgcolor:'rgba(0,0,0,0)'}, hovermode:'closest',
-    shapes:isCyc?[]:[{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:'#3a4454',dash:'dot',width:1}}]
+    hovermode:'closest',
+    shapes:isCyc?[]:[{type:'line',x0:0,x1:1,xref:'paper',y0:0,y1:0,line:{color:tc.zero,dash:'dot',width:1}}]
   };
+  // show legend panel FIRST so the flex row gives #plot its reduced width before Plotly measures
+  document.getElementById('legTitle').textContent =
+    state.colorby==='cell_type'?'Cell type':(state.colorby==='tier'?'Safety tier':'Tissue');
+  document.getElementById('legendPanel').style.display='flex';
   Plotly.react(plot,traces,layout,{responsive:true,displayModeBar:false});
   plot.on('plotly_click',ev=>{ const cd=ev.points[0].customdata; highlightRow(cd[0],cd[1]); });
+  buildLegend(legend); buildSizeKey(rs, sizeref);
   renderTable(rs); setFoot(rs.length);
+}
+
+function buildLegend(items){
+  const box=document.getElementById('legList'); box.innerHTML='';
+  items.forEach((it,idx)=>{
+    const el=document.createElement('div'); el.className='legItem'; el.title=it.name;
+    el.innerHTML=`<span class="legSw" style="background:${it.color}"></span><span class="legName">${it.name}</span>`;
+    el.onclick=()=>{ const off=el.classList.toggle('off');
+      Plotly.restyle('plot',{visible: off?'legendonly':true},[idx]); };
+    box.appendChild(el);
+  });
+}
+function buildSizeKey(rs, sizeref){
+  const maxpct=Math.max(...rs.map(r=>r.pct));
+  let anchors=[0.75,0.4,0.1].filter(a=>a<=maxpct);
+  if(!anchors.length) anchors=[Math.max(0.02,Math.round(maxpct*100)/100)];
+  const box=document.getElementById('sizekey'); box.innerHTML='';
+  anchors.forEach(a=>{ const d=Math.max(6,Math.sqrt(2*a/sizeref));
+    box.innerHTML+=`<div class="sc"><span class="cir" style="width:${d}px;height:${d}px"></span>`+
+      `<span class="lb">${Math.round(a*100)}%</span></div>`;
+  });
 }
 
 let _rows=[];

@@ -19,8 +19,8 @@ env/
 Thumbs.db
 *.log
 
-# Generated standalone build (regenerate with pipeline/build_app.py)
-app/aegis_standalone.html
+# Standalone build IS committed (single-file download for other devices / offline);
+# regenerate with pipeline/build_app.py after any data/app change.
 
 # Keep the compact derived summary that powers the app
 !data/aegis_summary.parquet

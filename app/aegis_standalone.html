@@ -159,8 +159,8 @@
     <div class="grp">
       <h3>Y axis (proliferation)</h3>
       <div class="seg" id="ymetric">
-        <button data-v="pr" class="on">S+G2M score</button>
-        <button data-v="cyc">% cycling</button>
+        <button data-v="cyc" class="on">% cycling</button>
+        <button data-v="pr">S+G2M score</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
         <b style="color:var(--ink)">Score</b>: cell-cycle genes vs matched-random background — 0 = baseline (quiescent), &lt;0 = below background, &gt;0 = cycling.<br>
@@ -251,7 +251,7 @@ const PALETTE = ['#4aa8ff','#ef4444','#22c55e','#f59e0b','#a855f7','#ec4899','#1
   '#fbbf24','#4ade80','#38bdf8','#fca5a5'];
 const TUMOR_PAL = ['#ff2d55','#ff375f','#d81b60','#e91e63','#c2185b','#ad1457','#f50057'];
 
-let D=null, state={gene:null, colorby:'cell_type', ymetric:'pr', tiersOn:{1:1,2:1,3:1,4:1,0:1},
+let D=null, state={gene:null, colorby:'cell_type', ymetric:'cyc', tiersOn:{1:1,2:1,3:1,4:1,0:1},
   tumorsOn:{}, pct:1, nc:20, sortk:'risk', sortdir:-1};
 
 /* ---- theme ---- */

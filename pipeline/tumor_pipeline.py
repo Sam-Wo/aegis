@@ -28,7 +28,8 @@ RAW = AEGIS / "raw_tumor"
 ANNOT = AEGIS / "annot_tumor"
 
 CANCERS = {
-    "breast":   r"breast (cancer|carcinoma|adenocarc)|\bBRCA\b|mammary carc|triple.?negative|\bTNBC\b|HER2\+?",
+    "breast":   r"breast (cancer|carcinoma|adenocarc)|\bBRCA\b|mammary carc|triple.?negative|\bTNBC\b",
+    "breast_her2": r"(breast|mammary|brca).{0,45}her2\s*\+|her2\s*\+.{0,45}(breast|mammary|cancer)|erbb2[- ]?amplif",
     "luad":     r"lung adenocarc|\bLUAD\b|non-small cell|\bNSCLC\b|lung carcinoma",
     "crc":      r"colorectal|colon (adeno)?carc|rectal (adeno)?carc|\bCRC\b|colon cancer|colonic adeno",
     "hcc":      r"hepatocellular|\bHCC\b|\bLIHC\b",
@@ -36,8 +37,10 @@ CANCERS = {
     "ovarian":  r"ovarian (cancer|carcinoma)|\bHGSOC\b|high.?grade serous|ovarian adeno",
     "gastric":  r"gastric (cancer|carcinoma|adeno)|stomach (cancer|adeno)",
 }
-CANCER_LABEL = {"breast":"breast tumor","luad":"lung adeno tumor","crc":"colorectal tumor",
-    "hcc":"HCC tumor","pdac":"pancreatic tumor","ovarian":"ovarian tumor","gastric":"gastric tumor"}
+CANCER_LABEL = {"breast":"breast tumor","breast_her2":"breast HER2+ tumor","luad":"lung adeno tumor",
+    "crc":"colorectal tumor","hcc":"HCC tumor","pdac":"pancreatic tumor","ovarian":"ovarian tumor",
+    "gastric":"gastric tumor"}
+# genes with strong single-nucleus dropout (membrane/cytoplasmic) — prefer single-cell tumors
 BAD = (r"organoid|cell line|cultured|ipsc|-derived|\bpdx\b|xenograft|spheroid|sorted|"
        r"epcam\+|cd45|flow.?sort|facs|nucle(i|us)")
 
@@ -78,6 +81,12 @@ def select(cancer, n, lo=3000, hi=120000):
     if "cell_line" in m.columns:
         cl = m["cell_line"].fillna("").astype(str).str.strip().str.lower()
         m = m[cl.isin({"","nan","none","na","unsure","unknown","not applicable","other"})]
+    # prefer single-cell over single-nucleus (snRNA drops membrane antigens e.g. CEACAM5)
+    if "cell_prep" in m.columns:
+        cp = m["cell_prep"].fillna("").astype(str).str.lower()
+        sc_only = m[cp.str.contains("cell") & ~cp.str.contains("nucl")]
+        if len(sc_only) >= 3:
+            m = sc_only
     m = m[(m["obs_count"] >= lo) & (m["obs_count"] <= hi)]
     m = m.sort_values("obs_count", ascending=False)
     key = "entrez_id" if "entrez_id" in m.columns else "srx_accession"

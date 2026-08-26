@@ -17,9 +17,9 @@ ANNOT = AEGIS / "annot"            # our own normal annotations (marker-based ki
 ANNOT_TUMOR = AEGIS / "annot_tumor"  # CNV-refined tumor annotations
 MIN_LABELED = 0.5
 
-CANCER_LABEL = {"breast": "breast tumor", "luad": "lung adeno tumor", "crc": "colorectal tumor",
-    "hcc": "HCC tumor", "pdac": "pancreatic tumor", "ovarian": "ovarian tumor",
-    "gastric": "gastric tumor"}
+CANCER_LABEL = {"breast": "breast tumor", "breast_her2": "breast HER2+ tumor",
+    "luad": "lung adeno tumor", "crc": "colorectal tumor", "hcc": "HCC tumor",
+    "pdac": "pancreatic tumor", "ovarian": "ovarian tumor", "gastric": "gastric tumor"}
 
 rows, skipped = [], []
 

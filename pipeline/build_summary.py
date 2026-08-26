@@ -108,7 +108,7 @@ def to_symbols(adata):
 def get_celltypes(adata):
     """Coalesced per-cell labels: native scBaseCount ontology first (captures
     parenchyma), then celltypist, then any cell_type, else 'unlabeled'."""
-    order = ("cell_type_scbasecount", "cell_type_celltypist", "cell_type")
+    order = ("cell_type_final", "cell_type_scbasecount", "cell_type_celltypist", "cell_type")
     have = [c for c in order if c in adata.obs.columns]
     if not have:
         return None
@@ -198,18 +198,19 @@ class Accumulator:
         self.n_cycling[key] += float(cycling.sum())
         self.samples[key].add(sample)
 
-    def to_frames(self, min_cells, tier_of, gene_order):
+    def to_frames(self, min_cells, tier_of, gene_order, kind_of=None):
         long_rows, group_rows = [], []
         for key in sorted(self.n_cells, key=lambda k: (k[0], k[1])):
             tissue, ct = key
             nc = self.n_cells[key]
             if nc < min_cells:
                 continue
-            tier, tlabel = tier_of(tissue)
+            kind = kind_of(tissue) if kind_of else "normal"
+            tier, tlabel = (0, "TUMOR") if kind == "tumor" else tier_of(tissue)
             mean_expr = self.sum_expr[key] / nc
             pct_pos = self.n_pos[key] / nc
             group_rows.append(dict(
-                tissue=tissue, cell_type=ct, tier=tier, tier_label=tlabel,
+                tissue=tissue, cell_type=ct, tier=tier, tier_label=tlabel, kind=kind,
                 n_cells=int(nc), n_samples=len(self.samples[key]),
                 prolif=round(self.sum_prolif[key] / nc, 4),
                 pct_cycling=round(self.n_cycling[key] / nc, 4),
@@ -232,6 +233,7 @@ def build_json(long_df, group_df, gene_ann):
     group_df = group_df.reset_index(drop=True)
     gkey = {(r.tissue, r.cell_type): i for i, r in group_df.iterrows()}
     groups = [dict(t=r.tissue, ct=r.cell_type, tier=int(r.tier), tl=r.tier_label,
+                   kind=getattr(r, "kind", "normal"),
                    n=int(r.n_cells), ns=int(r.n_samples), pr=float(r.prolif),
                    cyc=float(r.pct_cycling))
               for r in group_df.itertuples(index=False)]
@@ -249,10 +251,13 @@ def build_json(long_df, group_df, gene_ann):
                 row = gene_ann.loc[g]
                 ann[g] = {k: (None if pd.isna(row[k]) else str(row[k]))
                           for k in gene_ann.columns}
+    norm = group_df[group_df.get("kind", "normal") != "tumor"] if "kind" in group_df else group_df
+    tum = group_df[group_df.get("kind") == "tumor"] if "kind" in group_df else group_df.iloc[0:0]
     return dict(
         meta=dict(n_groups=len(groups), n_genes=len(genes),
                   total_cells=int(group_df.n_cells.sum()),
-                  tissues=sorted(group_df.tissue.unique().tolist())),
+                  tissues=sorted(norm.tissue.unique().tolist()),
+                  tumors=sorted(tum.tissue.unique().tolist())),
         groups=groups, genes=genes, expr=expr, ann=ann,
     )
 
@@ -274,12 +279,14 @@ def main():
 
     acc = None
     gene_universe = None  # fixed gene order across samples (surface genes present anywhere)
+    tissue_kind = {}      # tissue -> 'normal' | 'tumor'
 
     for i, row in man.iterrows():
         path = Path(row["path"])
         if not path.is_absolute():
             path = (PROJECT / path)
         tissue = str(row["tissue"])
+        tissue_kind[tissue] = str(row.get("kind", "normal"))
         if not path.exists():
             log.warning(f"[{i+1}/{len(man)}] MISSING {path}")
             continue
@@ -319,7 +326,10 @@ def main():
         rawX_s = rawX[:, src_cols].tocsr()
 
         cts = get_celltypes(adata).values
+        is_tumor = tissue_kind.get(tissue) == "tumor"
         for ct in pd.unique(cts):
+            if is_tumor and ct != "malignant":
+                continue  # tumor groups aggregate malignant cells only (no TME dilution)
             m = np.where(cts == ct)[0]
             if len(m) == 0:
                 continue
@@ -334,7 +344,8 @@ def main():
         return
 
     def tier_of(t): return TISSUE_TIERS.get(t, DEFAULT_TIER)
-    long_df, group_df = acc.to_frames(args.min_cells, tier_of, acc.genes)
+    def kind_of(t): return tissue_kind.get(t, "normal")
+    long_df, group_df = acc.to_frames(args.min_cells, tier_of, acc.genes, kind_of)
     log.info(f"Groups (>= {args.min_cells} cells): {len(group_df)}")
     log.info(f"Long rows (gene x group, detected): {len(long_df)}")
 

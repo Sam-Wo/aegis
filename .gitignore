@@ -26,3 +26,8 @@ Thumbs.db
 !data/aegis_summary.parquet
 !data/aegis_groups.parquet
 !data/aegis_data.json
+
+# tumor pipeline scratch (h5ads already ignored)
+raw_tumor/
+annot_tumor/
+annot/

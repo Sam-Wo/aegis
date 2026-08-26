@@ -1,41 +1,81 @@
-path,tissue
-results/normal/liver/ERX8792139_annotated.h5ad,liver
-results/normal/liver/SRX15625585_annotated.h5ad,liver
-results/normal/liver/SRX9627328_annotated.h5ad,liver
-results/normal/liver/SRX9627330_annotated.h5ad,liver
-results/normal/bone_marrow/SRX28908287_annotated.h5ad,bone_marrow
-results/normal/bone_marrow/SRX28908288_annotated.h5ad,bone_marrow
-results/normal/bone_marrow/SRX28908392_annotated.h5ad,bone_marrow
-results/normal/bone_marrow/SRX28908402_annotated.h5ad,bone_marrow
-results/normal/bone_marrow/SRX28908403_annotated.h5ad,bone_marrow
-aegis/annot/kidney/SRX13325092.h5ad,kidney
-aegis/annot/kidney/SRX13325097.h5ad,kidney
-aegis/annot/kidney/SRX13325099.h5ad,kidney
-aegis/annot/kidney/SRX13926935.h5ad,kidney
-aegis/annot/kidney/SRX15124653.h5ad,kidney
-aegis/annot/kidney/SRX15124655.h5ad,kidney
-aegis/annot/kidney/SRX15124657.h5ad,kidney
-aegis/annot/kidney/SRX15124661.h5ad,kidney
-aegis/annot/kidney/SRX15391506.h5ad,kidney
-aegis/annot/kidney/SRX16673119.h5ad,kidney
-aegis/annot/kidney/SRX16673121.h5ad,kidney
-aegis/annot/kidney/SRX20208488.h5ad,kidney
-aegis/annot/kidney/SRX20208491.h5ad,kidney
-aegis/annot/kidney/SRX8594474.h5ad,kidney
-aegis/raw/colon/SRX14977819.h5ad,colon
-aegis/raw/colon/SRX8726758.h5ad,colon
-aegis/raw/colon/SRX8726763.h5ad,colon
-aegis/raw/colon/SRX8726764.h5ad,colon
-aegis/raw/heart/SRX15327270.h5ad,heart
-aegis/raw/heart/SRX15327295.h5ad,heart
-aegis/raw/heart/SRX24149507.h5ad,heart
-aegis/raw/lung/SRX19704175.h5ad,lung
-aegis/raw/lung/SRX23724074.h5ad,lung
-aegis/raw/pancreas/SRX19176925.h5ad,pancreas
-aegis/raw/skin/SRX19447643.h5ad,skin
-aegis/raw/skin/SRX28908187.h5ad,skin
-aegis/raw/skin/SRX28908219.h5ad,skin
-aegis/raw/small_intestine/SRX19766577.h5ad,small_intestine
-aegis/raw/small_intestine/SRX19766579.h5ad,small_intestine
-aegis/raw/small_intestine/SRX19766582.h5ad,small_intestine
-aegis/raw/small_intestine/SRX24459565.h5ad,small_intestine
+path,tissue,kind
+results/normal/liver/ERX8792139_annotated.h5ad,liver,normal
+results/normal/liver/SRX15625585_annotated.h5ad,liver,normal
+results/normal/liver/SRX9627328_annotated.h5ad,liver,normal
+results/normal/liver/SRX9627330_annotated.h5ad,liver,normal
+results/normal/bone_marrow/SRX28908287_annotated.h5ad,bone_marrow,normal
+results/normal/bone_marrow/SRX28908288_annotated.h5ad,bone_marrow,normal
+results/normal/bone_marrow/SRX28908392_annotated.h5ad,bone_marrow,normal
+results/normal/bone_marrow/SRX28908402_annotated.h5ad,bone_marrow,normal
+results/normal/bone_marrow/SRX28908403_annotated.h5ad,bone_marrow,normal
+aegis/annot/kidney/SRX13325092.h5ad,kidney,normal
+aegis/annot/kidney/SRX13325097.h5ad,kidney,normal
+aegis/annot/kidney/SRX13325099.h5ad,kidney,normal
+aegis/annot/kidney/SRX13926935.h5ad,kidney,normal
+aegis/annot/kidney/SRX15124653.h5ad,kidney,normal
+aegis/annot/kidney/SRX15124655.h5ad,kidney,normal
+aegis/annot/kidney/SRX15124657.h5ad,kidney,normal
+aegis/annot/kidney/SRX15124661.h5ad,kidney,normal
+aegis/annot/kidney/SRX15391506.h5ad,kidney,normal
+aegis/annot/kidney/SRX16673119.h5ad,kidney,normal
+aegis/annot/kidney/SRX16673121.h5ad,kidney,normal
+aegis/annot/kidney/SRX20208488.h5ad,kidney,normal
+aegis/annot/kidney/SRX20208491.h5ad,kidney,normal
+aegis/annot/kidney/SRX8594474.h5ad,kidney,normal
+aegis/annot_tumor/breast/SRX14633680.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX14633681.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX15594517.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732877.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732884.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732886.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732895.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732983.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732987.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX20732988.h5ad,breast tumor,tumor
+aegis/annot_tumor/breast/SRX22205151.h5ad,breast tumor,tumor
+aegis/annot_tumor/crc/ERX11757924.h5ad,colorectal tumor,tumor
+aegis/annot_tumor/crc/SRX14977865.h5ad,colorectal tumor,tumor
+aegis/annot_tumor/crc/SRX14977866.h5ad,colorectal tumor,tumor
+aegis/annot_tumor/crc/SRX20204669.h5ad,colorectal tumor,tumor
+aegis/annot_tumor/crc/SRX20204673.h5ad,colorectal tumor,tumor
+aegis/annot_tumor/gastric/SRX22320216.h5ad,gastric tumor,tumor
+aegis/annot_tumor/gastric/SRX24279669.h5ad,gastric tumor,tumor
+aegis/annot_tumor/hcc/SRX15225500.h5ad,HCC tumor,tumor
+aegis/annot_tumor/hcc/SRX19067181.h5ad,HCC tumor,tumor
+aegis/annot_tumor/hcc/SRX22677760.h5ad,HCC tumor,tumor
+aegis/annot_tumor/hcc/SRX22677763.h5ad,HCC tumor,tumor
+aegis/annot_tumor/luad/SRX12868713.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX13198725.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX13198727.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX13198732.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX18248062.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX18248064.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX18248065.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX8372491.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/luad/SRX8372496.h5ad,lung adeno tumor,tumor
+aegis/annot_tumor/ovarian/SRX11523610.h5ad,ovarian tumor,tumor
+aegis/annot_tumor/pdac/SRX16749823.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX17495378.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX17539834.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX17744310.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX18243181.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX21607708.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX8778054.h5ad,pancreatic tumor,tumor
+aegis/annot_tumor/pdac/SRX8961823.h5ad,pancreatic tumor,tumor
+aegis/raw/colon/SRX14977819.h5ad,colon,normal
+aegis/raw/colon/SRX8726758.h5ad,colon,normal
+aegis/raw/colon/SRX8726763.h5ad,colon,normal
+aegis/raw/colon/SRX8726764.h5ad,colon,normal
+aegis/raw/heart/SRX15327270.h5ad,heart,normal
+aegis/raw/heart/SRX15327295.h5ad,heart,normal
+aegis/raw/heart/SRX24149507.h5ad,heart,normal
+aegis/raw/lung/SRX19704175.h5ad,lung,normal
+aegis/raw/lung/SRX23724074.h5ad,lung,normal
+aegis/raw/pancreas/SRX19176925.h5ad,pancreas,normal
+aegis/raw/skin/SRX19447643.h5ad,skin,normal
+aegis/raw/skin/SRX28908187.h5ad,skin,normal
+aegis/raw/skin/SRX28908219.h5ad,skin,normal
+aegis/raw/small_intestine/SRX19766577.h5ad,small_intestine,normal
+aegis/raw/small_intestine/SRX19766579.h5ad,small_intestine,normal
+aegis/raw/small_intestine/SRX19766582.h5ad,small_intestine,normal
+aegis/raw/small_intestine/SRX24459565.h5ad,small_intestine,normal

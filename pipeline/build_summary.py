@@ -269,6 +269,8 @@ def main():
                     help="Drop (tissue,cell_type) groups below this many cells")
     ap.add_argument("--all-genes", action="store_true",
                     help="Aggregate all genes instead of surface proteins only")
+    ap.add_argument("--max-cells", type=int, default=0,
+                    help="Subsample each sample to at most N cells (0 = all) — speeds the build")
     args = ap.parse_args()
 
     t0 = time.time()
@@ -304,6 +306,8 @@ def main():
         if adata.n_obs < args.min_cells:
             log.warning(f"  only {adata.n_obs} cells after QC — skipping")
             continue
+        if args.max_cells and adata.n_obs > args.max_cells:
+            sc.pp.subsample(adata, n_obs=args.max_cells, random_state=0)
 
         prolif, cycling = proliferation_score(adata)
         logX, rawX = get_lognorm_and_raw(adata)
@@ -325,16 +329,33 @@ def main():
         logX_s = logX[:, src_cols].tocsr()
         rawX_s = rawX[:, src_cols].tocsr()
 
-        cts = get_celltypes(adata).values
         is_tumor = tissue_kind.get(tissue) == "tumor"
+        if is_tumor:
+            comp = adata.obs["compartment"].astype(str).values if "compartment" in adata.obs.columns else None
+            mal = adata.obs["malignant"].values if "malignant" in adata.obs.columns else None
+            if comp is not None and mal is not None:
+                # malignant + adjacent-normal epithelium (same-sample batch-controlled ref); drop TME
+                cts = np.where(mal, "malignant",
+                       np.where(comp == "epithelial", "adjacent normal epithelium", "__skip__"))
+            else:
+                cf = get_celltypes(adata).values
+                cts = np.where(cf == "malignant", "malignant", "__skip__")
+        else:
+            cts = get_celltypes(adata).values
         for ct in pd.unique(cts):
-            if is_tumor and ct != "malignant":
-                continue  # tumor groups aggregate malignant cells only (no TME dilution)
+            if ct == "__skip__":
+                continue
             m = np.where(cts == ct)[0]
             if len(m) == 0:
                 continue
             acc.add(tissue, ct, path.stem,
                     logX_s[m], rawX_s[m], prolif[m], cycling[m], target_cols)
+        # HER2-amplified malignant subset as its own group (for ERBB2 stratification)
+        if is_tumor and "her2_amp" in adata.obs.columns and "malignant" in adata.obs.columns:
+            ha = np.where(adata.obs["her2_amp"].values & adata.obs["malignant"].values)[0]
+            if len(ha) > 0:
+                acc.add(tissue, "malignant HER2-amp", path.stem,
+                        logX_s[ha], rawX_s[ha], prolif[ha], cycling[ha], target_cols)
         log.info(f"  {adata.n_obs} cells, {len(pd.unique(cts))} cell types, "
                  f"{len(present)} surface genes present")
         del adata, logX, rawX, logX_s, rawX_s

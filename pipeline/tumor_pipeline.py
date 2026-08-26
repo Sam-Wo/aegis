@@ -102,7 +102,9 @@ def load_positions():
 
 def annotate_sample(path, by_ens, by_sym):
     a = sc.read_h5ad(path)
-    ens = a.var["ensembl_id"].astype(str).values if "ensembl_id" in a.var.columns else a.var_names.astype(str).values
+    # capture Ensembl IDs as a var COLUMN so they stay aligned through filter_genes
+    if "ensembl_id" not in a.var.columns and str(a.var_names[0]).upper().startswith("ENSG"):
+        a.var["ensembl_id"] = a.var_names.astype(str)
     if "gene_symbols" in a.var.columns and str(a.var_names[0]).upper().startswith("ENSG"):
         a.var_names = a.var["gene_symbols"].astype(str).values
     a.var_names_make_unique()
@@ -133,9 +135,10 @@ def annotate_sample(path, by_ens, by_sym):
     sc.pp.normalize_total(a, target_sum=1e4); sc.pp.log1p(a)
     a.layers["log_normalized"] = a.X.copy()
 
-    # genomic positions on var (map by ensembl id first, else symbol)
+    # genomic positions on var (map by ensembl id first, else symbol) — use the
+    # POST-QC var column so ids stay aligned with the (filtered) genes
     var = a.var
-    ens_ser = pd.Series(ens[:var.shape[0]], index=var.index) if len(ens) >= var.shape[0] else None
+    ens_ser = a.var["ensembl_id"].astype(str) if "ensembl_id" in a.var.columns else None
     chrom = pd.Series(index=var.index, dtype=object); st = pd.Series(index=var.index, dtype=float); en = pd.Series(index=var.index, dtype=float)
     if ens_ser is not None:
         hit = ens_ser.isin(by_ens.index)

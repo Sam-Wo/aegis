@@ -194,11 +194,17 @@
       <h3>Read the plot</h3>
       <div style="font-size:11.5px;color:var(--muted);line-height:1.6">
         <b style="color:var(--ink)">X</b> = mean expression (log-norm)<br>
-        <b style="color:var(--ink)">Y</b> = proliferation (S+G2M)<br>
+        <b style="color:var(--ink)">Y</b> = % cycling (or S+G2M score)<br>
         <b style="color:var(--ink)">Size</b> = % of cells expressing<br>
         <b style="color:var(--ink)">Red ring</b> = critical/serious tissue<br>
+        <b style="color:var(--ink)">Diamonds</b> = malignant tumor cells<br>
         Upper-right in a red-ring bubble = a target on dividing cells of a dose-limiting organ.
       </div>
+    </div>
+
+    <div class="grp">
+      <h3>Dataset (cells / tissue)</h3>
+      <div id="dataset" style="font-size:11px;color:var(--muted);line-height:1.5"></div>
     </div>
   </aside>
 
@@ -214,6 +220,16 @@
           <div class="ringkey"><span class="ringSw"></span><span>Tier 1–2 (dose-limiting) tissue</span></div>
         </div>
       </aside>
+    </div>
+
+    <div id="selWrap" style="display:none;margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div class="tblhead"><h3>Tumor selectivity — <span id="selGene"></span></h3>
+        <span style="font-size:11.5px;color:var(--muted)">malignant vs same-sample normal epithelium (batch-controlled) &amp; vs top critical-normal</span></div>
+      <div style="overflow-x:auto"><table id="selTbl" style="min-width:600px">
+        <thead><tr><th>Tumor (malignant)</th><th class="num">% express</th><th class="num">Mean expr</th>
+          <th class="num">Adj-normal epi %</th><th class="num">Selectivity&nbsp;×</th>
+          <th class="num">Top critical-normal</th></tr></thead>
+        <tbody></tbody></table></div>
     </div>
 
     <div class="tblwrap" id="tblwrap" style="display:none">
@@ -280,7 +296,7 @@ async function boot(){
   document.getElementById('c-tissues').textContent = D.meta.tissues.length;
   document.getElementById('c-groups').textContent = D.meta.n_groups.toLocaleString();
   document.getElementById('c-cells').textContent = (D.meta.total_cells/1e3).toFixed(0)+'k';
-  buildTiers(); buildTumors(); wireControls();
+  buildTiers(); buildTumors(); buildDataset(); wireControls();
   // default gene: first with an approved/clinical ADC status, else a high-signal one
   const def = D.genes.find(g=>{const a=D.ann[g]; return a && a.adc_clinical_status &&
       /approv|clinic|phase/i.test(a.adc_clinical_status)}) || (D.genes.includes('MS4A1')?'MS4A1':D.genes[0]);
@@ -296,6 +312,25 @@ function buildTiers(){
     row.querySelector('input').onchange=e=>{state.tiersOn[t]=e.target.checked?1:0; render();};
     box.appendChild(row);
   });
+}
+
+function buildDataset(){
+  const fmt=n=>n>=1000?(n/1000).toFixed(0)+'k':(''+n);
+  const row=(t,n,s)=>`<div style="display:flex;justify-content:space-between;gap:8px">`+
+    `<span>${t.replace(/_/g,' ')}</span><b style="color:var(--ink)">${fmt(n)}${s?' · '+s+'s':''}</b></div>`;
+  const norm={}; D.groups.filter(g=>g.kind!=='tumor').forEach(g=>norm[g.t]=(norm[g.t]||0)+g.n);
+  let ncells=0; const nrows=Object.entries(norm).sort((a,b)=>b[1]-a[1]);
+  nrows.forEach(([,n])=>ncells+=n);
+  let html=`<div style="font-weight:600;margin:0 0 2px">Healthy — ${fmt(ncells)} cells</div>`;
+  nrows.forEach(([t,n])=>html+=row(t,n));
+  const tum=(D.meta.tumors||[]).map(t=>{const m=D.groups.find(g=>g.t===t&&g.ct==='malignant');return [t,m?m.n:0];})
+    .filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  if(tum.length){
+    let tcells=0; tum.forEach(([,n])=>tcells+=n);
+    html+=`<div style="font-weight:600;margin:7px 0 2px">Tumor malignant — ${fmt(tcells)} cells</div>`;
+    tum.forEach(([t,n])=>html+=row(t,n));
+  }
+  document.getElementById('dataset').innerHTML=html;
 }
 
 function buildTumors(){
@@ -395,6 +430,7 @@ function render(){
   const plot=document.getElementById('plot');
   if(!rs.length){ plot.innerHTML=`<div class="hint"><b>${state.gene}</b> is below the current thresholds in all cell types.<br>Lower the “% expressing” filter to see low-level expression.</div>`;
     document.getElementById('tblwrap').style.display='none';
+    document.getElementById('selWrap').style.display='none';
     document.getElementById('legendPanel').style.display='none'; setFoot(0); return; }
 
   const sizeref = 2.0*Math.max(...rs.map(r=>Math.max(r.pct,0.02)))/(38*38);
@@ -426,24 +462,41 @@ function render(){
       if(a.length) mk(ts.replace(/_/g,' '),a,PALETTE[D.meta.tissues.indexOf(ts)%PALETTE.length]);});
   }
 
-  // ---- tumor overlay: malignant cells as diamonds ----
+  // ---- tumor overlay: malignant diamonds + selectivity + HER2-amp ----
   const eT=D.expr[state.gene]||[]; const bygT={}; eT.forEach(([gi,me,pp])=>bygT[gi]=[me,pp]);
+  const gIdx=(tm,ct)=>D.groups.findIndex(g=>g.kind==='tumor'&&g.t===tm&&g.ct===ct);
+  const val=gi=>{const v=bygT[gi]; return {me:v?v[0]:0, pp:v?v[1]:0};};
+  const topCrit = Math.max(0, ...rs.filter(r=>r.tier===1).map(r=>r.pct));  // top Tier-1 normal %pos
+  const selRows=[];
+  function tumorDiamond(name,col,me,y,pp,extra,her2){
+    traces.push({
+      x:[me], y:[y], mode:'markers', type:'scatter', name,
+      marker:{symbol:her2?'diamond-tall':'diamond', size:[Math.max(pp,0.02)], sizemode:'area',
+        sizeref, sizemin:her2?9:10, color:her2?'#ffd166':col,
+        line:{width:her2?2.6:2.4, color:her2?col:tc.ink}, opacity:.95},
+      customdata:[extra],
+      hovertemplate:'<b>'+(her2?'HER2-amp ':'TUMOR ')+'— '+name+'</b><br>%{customdata[0]}<extra></extra>'
+    });
+    legend.push({name, color:her2?'#ffd166':col, tumor:true});
+  }
   (D.meta.tumors||[]).forEach((tm,ti)=>{
     if(!state.tumorsOn[tm]) return;
-    const gi=D.groups.findIndex(g=>g.kind==='tumor' && g.t===tm && g.ct==='malignant');
-    if(gi<0) return;
-    const g=D.groups[gi], v=bygT[gi], me=v?v[0]:0, pp=v?v[1]:0, col=TUMOR_PAL[ti%TUMOR_PAL.length];
-    traces.push({
-      x:[me], y:[isCyc?g.cyc*100:g.pr], mode:'markers', type:'scatter', name:tm,
-      marker:{symbol:'diamond', size:[Math.max(pp,0.02)], sizemode:'area', sizeref, sizemin:10,
-        color:col, line:{width:2.4, color:tc.ink}, opacity:.95},
-      customdata:[[tm,(pp*100).toFixed(1),me.toFixed(2),g.pr.toFixed(2),g.n,(g.cyc*100).toFixed(0)]],
-      hovertemplate:'<b>TUMOR — %{customdata[0]}</b><br>malignant cells<br>'+
-        'Expr %{customdata[2]} · %{customdata[1]}% express<br>Prolif %{customdata[3]} · %{customdata[5]}% cycling<br>'+
-        '%{customdata[4]} cells<extra></extra>'
-    });
-    legend.push({name:tm, color:col, tumor:true});
+    const gi=gIdx(tm,'malignant'); if(gi<0) return;
+    const g=D.groups[gi], mv=val(gi), col=TUMOR_PAL[ti%TUMOR_PAL.length];
+    const ni=gIdx(tm,'adjacent normal epithelium'), nv=ni>=0?val(ni):null;
+    const sel = nv ? mv.pp/Math.max(nv.pp,0.005) : null;
+    selRows.push({tm,col,malPct:mv.pp,malExpr:mv.me,normEpiPct:nv?nv.pp:null,sel,topCrit});
+    const hov='malignant cells · Expr '+mv.me.toFixed(2)+' · '+(mv.pp*100).toFixed(1)+'% express<br>'+
+      (nv?('vs same-sample normal epi '+(nv.pp*100).toFixed(0)+'% → '+(sel>=1?sel.toFixed(1)+'× enriched':sel.toFixed(2)+'×')+'<br>'):'')+
+      (g.cyc*100).toFixed(0)+'% cycling · '+g.n+' cells';
+    tumorDiamond(tm,col,mv.me,isCyc?g.cyc*100:g.pr,mv.pp,hov,false);
+    const hi=gIdx(tm,'malignant HER2-amp');
+    if(hi>=0){ const hv=val(hi), hg=D.groups[hi];
+      tumorDiamond(tm+' HER2-amp',col,hv.me,isCyc?hg.cyc*100:hg.pr,hv.pp,
+        'HER2-amplified malignant subset · Expr '+hv.me.toFixed(2)+' · '+(hv.pp*100).toFixed(1)+'% express · '+hg.n+' cells',true);
+    }
   });
+  buildSelReadout(selRows);
 
   const layout={
     paper_bgcolor:tc.paper, plot_bgcolor:tc.plot, font:{color:tc.ink,size:12},
@@ -484,6 +537,26 @@ function buildLegend(items){
       Plotly.restyle('plot',{visible: off?'legendonly':true},[idx]); };
     box.appendChild(el);
   });
+}
+function buildSelReadout(rows){
+  const wrap=document.getElementById('selWrap');
+  if(!rows.length){ wrap.style.display='none'; return; }
+  document.getElementById('selGene').textContent=state.gene;
+  const tb=document.querySelector('#selTbl tbody'); tb.innerHTML='';
+  rows.slice().sort((a,b)=>(b.sel||0)-(a.sel||0)).forEach(r=>{
+    const selTxt=r.sel==null?'—':(r.sel>=1?r.sel.toFixed(1)+'×':r.sel.toFixed(2)+'×');
+    // green = tumor-selective (good), red = normal epithelium expresses as much / more
+    const selCls=r.sel==null?'':(r.sel>=1.5?'b-lo':(r.sel>=1?'b-md':'b-hi'));
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span style="display:inline-block;width:9px;height:9px;background:${r.col};border-radius:2px;transform:rotate(45deg);margin-right:7px"></span>${r.tm}</td>`+
+      `<td class="num">${(r.malPct*100).toFixed(1)}%</td>`+
+      `<td class="num">${r.malExpr.toFixed(2)}</td>`+
+      `<td class="num">${r.normEpiPct==null?'—':(r.normEpiPct*100).toFixed(1)+'%'}</td>`+
+      `<td class="num"><span class="badge ${selCls}">${selTxt}</span></td>`+
+      `<td class="num">${(r.topCrit*100).toFixed(1)}%</td>`;
+    tb.appendChild(tr);
+  });
+  wrap.style.display='block';
 }
 function buildSizeKey(rs, sizeref){
   const maxpct=Math.max(...rs.map(r=>r.pct));
